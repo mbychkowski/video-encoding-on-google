@@ -27,12 +27,17 @@ for SUCCINCT_ROLE in \
     clouddeploy.operator \
     compute.networkAdmin \
     container.clusterAdmin \
+    container.developer \
+    eventarc.developer \
     iam.serviceAccountAdmin \
     iam.serviceAccountUser \
     logging.configWriter \
+    logging.logWriter \
+    pubsub.editor \
     resourcemanager.projectIamAdmin \
     storage.admin \
     storage.objectAdmin \
+    workflows.editor \
     ; do
 
   gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
