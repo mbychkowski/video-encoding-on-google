@@ -4,7 +4,7 @@ resource "google_service_account" "eventarc" {
   display_name = "Eventarc Workflows Service Account"
 }
 
-module "member_roles_default_compute" {
+module "member_roles_eventarc" {
   source                  = "terraform-google-modules/iam/google//modules/member_iam"
   service_account_address = google_service_account.eventarc.email
   prefix                  = "serviceAccount"
@@ -30,14 +30,32 @@ module "member_roles_default_compute" {
   ]
 }
 
+# Create Workflows as an event receiver
+data "local_file" "encoder_schema" {
+  filename = "./definitions/pubsub-schema.json"
+}
+
+# Create Pub/Sub schema for topic
+resource "google_pubsub_schema" "encoder" {
+  name = "encoder-schema"
+  type = "AVRO"
+  definition = data.local_file.encoder_schema.content
+}
+
 # Create Pub/Sub topic as an event provider
 resource "google_pubsub_topic" "encoder" {
   name = "encoder-topic"
+  schema_settings {
+    schema = "projects/${local.project.name}/schemas/encoder-schema"
+    encoding = "JSON"
+  }
+
+  depends_on = [google_pubsub_schema.encoder]
 }
 
 # Create Workflows as an event receiver
-data "local_file" "encoder" {
-  filename = "../events/workflows/init-encoder.yaml"
+data "local_file" "encoder_workflow" {
+  filename = "./definitions/workflow.yaml"
 }
 
 # Create a workflow
@@ -47,12 +65,14 @@ resource "google_workflows_workflow" "encoder" {
   description     = "Deploy new encoder for stream"
   service_account = google_service_account.eventarc.email
 
+  call_log_level = "LOG_ALL_CALLS"
+
   user_env_vars = {
     DOCKER_REPO_URI = "${var.region}-docker.pkg.dev/${local.project.id}/video-encoding/"
-    GKE_CLUSER_NAME = module.gke.name
+    GKE_NAME = "${module.gke.name}"
   }
 
-  source_contents = data.local_file.encoder.contents
+  source_contents = data.local_file.encoder_workflow.content
 }
 
 # Defined Eventarc trigger
