@@ -27,7 +27,7 @@ main:
             - message: ${json.decode(base64)}
             - event_id: ${message.eventId}
             - location: ${message.region}
-            - gke_cluster_name: '${(sys.get_env("GKE_NAME")) + "-" + (location)}'
+            - gke_cluster_name: test-cluster # '${(sys.get_env("GKE_NAME")) + "-" + (location)}'
         - parallel_deployment:
             parallel:
                 branches:
@@ -101,6 +101,18 @@ main:
                                         env:
                                         - name: ENV
                                           value: dev
+                                        - name: OUTPUT_BUCKET
+                                          value: ${bucket_name_primary}
+                                        - name: RESOLUTION
+                                          value: "1080"
+                                        - name: OUTPUT_PATH
+                                          value: "/output"
+                                        - name: OUTPUT_BASE
+                                          value: "ffmpeg-test"
+                                        - name: OUTPUT_PAD
+                                          value: "%06d"
+                                        - name: OUTPUT_EXT
+                                          value: "ts"
                                         - name: SENDER_ADDR
                                           value: '${(message.truckOriginIp) + ":5000"}'
                                         resources:
@@ -196,6 +208,18 @@ main:
                                         env:
                                         - name: ENV
                                           value: dev
+                                        - name: OUTPUT_BUCKET
+                                          value: ${bucket_name_backup}
+                                        - name: RESOLUTION
+                                          value: "1080"
+                                        - name: OUTPUT_PATH
+                                          value: "/output"
+                                        - name: OUTPUT_BASE
+                                          value: "ffmpeg-test"
+                                        - name: OUTPUT_PAD
+                                          value: "%06d"
+                                        - name: OUTPUT_EXT
+                                          value: "ts"
                                         - name: SENDER_ADDR
                                           value: '${(message.truckOriginIp) + ":5001"}'
                                         resources:
