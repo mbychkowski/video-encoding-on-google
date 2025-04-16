@@ -15,7 +15,7 @@
 # limitations under the License.
 
 TIMESTAMP=`date +%Y%M%dt%H%M`
-STARTUP_SCRIPT=gs://vbench-testing/sender-startup.sh
+STARTUP_SCRIPT=gs://vbench-testing/start-sender.sh
 
 gcloud compute instances create srt-stream-sender-$TIMESTAMP \
   --zone=us-central1-f \
