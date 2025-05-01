@@ -4,9 +4,9 @@ This tutorial shows you how to build infrastructure on Google Cloud to simulate 
 
 ## Objectives
 
--  Create a Compute Engine instance to generate an SRT video stream (the "sender" instance).
--  Create a [Haivision SRT Gateway](https://console.cloud.google.com/marketplace/vm/config/haivision-public/haivision-srt-gateway-payg) instance from Google Cloud Marketplace to prepare an SRT stream for redistribution to multiple destinations (the "gateway" instance).
--  Create a Compute Engine instance to encode the SRT stream and write to disk in segments (the "caller" instance).
+-  Create a Compute Engine instance to generate an SRT video stream (the "Sender" instance).
+-  Create a [Haivision SRT Gateway](https://console.cloud.google.com/marketplace/vm/config/haivision-public/haivision-srt-gateway-payg) instance from [Google Cloud Marketplace](https://console.cloud.google.com/marketplace) to prepare an SRT stream for redistribution to multiple destinations (the "Gateway" instance).
+-  Create a Compute Engine instance to encode the SRT stream and write to disk in segments (the "Caller" instance).
 
 ## Costs
 
@@ -37,7 +37,7 @@ You can use the [Google Cloud Calculator](https://cloud.google.com/products/calc
 
 ## Before you begin
 
-This tutorial uses the Google Cloud CLI, which you can run from a [Cloud Shell](https://cloud.google.com/shell/docs/starting-cloud-shell) instance launched from the [Google Cloud console](https://console.cloud.google.com/) . If you want to use gcloud CLI on your local workstation, install the [Google Cloud CLI](https://cloud.google.com/sdk/docs). The tutorial shows you how to run commands in Cloud Shell; if you use the gcloud CLI on your workstation, adjust the instructions accordingly.
+This tutorial uses the Google Cloud CLI, which you can run from a [Cloud Shell](https://cloud.google.com/shell/docs/starting-cloud-shell) instance launched from the [Google Cloud console](https://console.cloud.google.com/). If you want to use gcloud CLI on your local workstation, install the [Google Cloud CLI](https://cloud.google.com/sdk/docs). The tutorial shows you how to run commands in Cloud Shell; if you use the gcloud CLI on your workstation, adjust the instructions accordingly.
 
 1. In the Google Cloud console, on the [project selector page](https://console.cloud.google.com/projectselector2/home/dashboard), select or create a Google Cloud project.
 1. [Make sure that billing is enabled for your Google Cloud project](https://cloud.google.com/billing/docs/how-to/verify-billing-enabled#confirm_billing_is_enabled_on_a_project).
@@ -46,9 +46,9 @@ This tutorial uses the Google Cloud CLI, which you can run from a [Cloud Shell](
 
 ## Architecture
 
-The following diagram shows the components used in this tutorial to deploy a single virtual broadcast truck environment.
+The following diagram shows the components used in this tutorial to deploy a single virtual broadcast truck environment:
 
-![image](/docs/images/vbt-arch.png)
+<img src="/docs/images/vbt-arch.png" width="300">
 
 ## Clone the repository
 
@@ -64,17 +64,18 @@ The Sender instance needs to pull a script from a Cloud Storage bucket on startu
 
 1. Open [Cloud Shell](https://console.cloud.google.com/welcome?cloudshell=true).
 1. Create a regional Google Cloud Storage bucket to contain the script for deployment:
-```
-gcloud storage buckets create \
-    gs://[BUCKET_NAME] \
-    --location=[REGION] \
-    --enable-autoclass
-```
 
-Replace the following:
+    ```
+    gcloud storage buckets create \
+        gs://[BUCKET_NAME] \
+        --location=[REGION] \
+        --enable-autoclass
+    ```
 
--  `[BUCKET_NAME]` is a unique name for your script bucket.
--  `[REGION]` is the region in which your Sender instance will be created.
+    Replace the following:
+
+    -  `[BUCKET_NAME]` is a unique name for your script bucket.
+    -  `[REGION]` is the region in which your Sender instance will be created.
 
 ## Create the Haivision SRT Gateway instance
 
@@ -83,14 +84,13 @@ Create this instance before the others, as you will need the internal IP address
 1. In the Console, navigate to the [Haivision SRT Gateway (PAYG)](https://console.cloud.google.com/marketplace/product/haivision-public/haivision-srt-gateway-payg) page in Marketplace.
 1. Click **Get Started** and choose to agree to the Marketplace Terms and agreements.
 1. Click **Deploy** and make sure additional required APIs are enabled.
-    1. For this deployment, you will need to enable the **Compute Engine API** and **Infrastructure Manager API.**
-
+    - For this deployment, you will need to enable the **Compute Engine API** and **Infrastructure Manager API.**
 1. On the deployment page, fill in the following fields (leave everything else at default values):
--  **Deployment name:** A unique name for this deployment.
--  **Service account name:** A Service Account will be created to manage the deployment and configuration of the instance.
--  **Service account ID:** This field will auto-populate with the Service Account name, but comply with resource naming restrictions.
--  **Zone:** The region/zone in which you want the 'truck' to reside in. Should be in the same region as your storage bucket.
--  **Machine type:** While you can customize the machine type, the default value of `n2d-standard-4` is sufficient for most use cases.
+    -  **Deployment name:** A unique name for this deployment.
+    -  **Service account name:** A Service Account will be created to manage the deployment and configuration of the instance.
+    -  **Service account ID:** This field will auto-populate with the Service Account name, but comply with resource naming restrictions.
+    -  **Zone:** The region/zone in which you want the 'truck' to reside in. Should be in the same region as your storage bucket.
+    -  **Machine type:** While you can customize the machine type, the default value of `n2d-standard-4` is sufficient for most use cases.
 1. Click **Deploy**.
 1. After a few minutes, your Gateway instance will be ready.
 
@@ -102,27 +102,22 @@ In a Chrome browser, log into the Gateway instance to configure the Gateway.
     - Note the VM's external IP address and Instance Id (a numeric string of 20 characters).
 1. In a browser, navigate to the Gateway's external IP address. 
     - You may have to choose **Continue to site **>** Advanced **>** Proceed to [IP_ADDRESS] (unsafe)**, as the VM uses a self-signed certificate.
-
 1. At the prompt, the default username is `haiadmin`, and the password is the VM's Instance Id.
     - Once logged in, you see the Administrator dashboard:  
-  
         ![image](/docs/images/01-gateway.png)
-
 1. Click **ADD ROUTE**, and configure the new route with the following:
-    1. Give the **Route** and **Source** a unique name.
-    1. **Protocol:** TS Over SRT.
-    1. **Type: **Listener.
-    1. **Network Interface:** Auto.
-    1. **Port:** 5000
-
+    - Give the **Route** and **Source** a unique name.
+    - **Protocol:** TS Over SRT.
+    - **Type: **Listener.
+    - **Network Interface:** Auto.
+    - **Port:** 5000
 1. Scroll down, and click **ADD DESTINATION,** and configure the following:
-    1. Give the **Destination** a unique name.
-    1. **Protocol:** TS Over SRT.
-    1. **Type: **Listener.
-    1. **Network Interface: **Auto.
-    1. **Port:** 5001.
-    1. Scroll down and click **SAVE.**
-
+    - Give the **Destination** a unique name.
+    - **Protocol:** TS Over SRT.
+    - **Type: **Listener.
+    - **Network Interface: **Auto.
+    - **Port:** 5001.
+    - Scroll down and click **SAVE.**
 1. Click **CREATE.** The route and destination are created.
 1. Click the **START** icon and confirm the action. The route will initiate and the source will show a status of CONNECTING (yellow triangle), waiting for an input stream:  
   
@@ -130,7 +125,7 @@ In a Chrome browser, log into the Gateway instance to configure the Gateway.
 
 ## Create the Sender instance
 
-The sender instance will boot with a startup script that downloads example footage and streams it to the Gateway instance.
+The Sender instance will boot with a startup script that downloads example footage and streams it to the Gateway instance.
 
 ### Add project metadata
 
@@ -181,7 +176,7 @@ The Sender startup scripts reads pre-defined variables from project metadata to 
 
 1. In Cloud Shell, copy the repo script `start-caller.sh` to your Cloud Storage bucket:  
   
-`gcloud storage cp scripts/start-caller.sh [BUCKET_NAME]`  
+    `gcloud storage cp scripts/start-caller.sh [BUCKET_NAME]`  
 
 1. Create the Caller instance:
 
@@ -234,10 +229,7 @@ For simplicity, this tutorial doesn't follow security best practices, which can 
     -  To create the Sender and Caller instances without an external IP address, use the `--no-address` flag during creation.
     -  To create the SRT Gateway instance without an external IP address, set **External IP** to **None** under the Network interfaces section of the UI.
     -  Communication with other instances in the same project can be achieved over internal IP addresses only.
-
 -  Don't create additional firewall rules when you create the SRT Gateway instance.
-    -  Ensure your project 
-
 -  Connect to the Gateway Administrator panel using an [IAP Tunnel](https://cloud.google.com/iap/docs/using-tcp-forwarding).
 
 ## Clean up
