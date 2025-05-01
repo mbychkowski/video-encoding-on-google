@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Report start.
-echo "`date`: ********* START $0 SRT CAPTURE SETUP *********"
+echo "`date`: ********* START $0 SRT CALLER SETUP *********"
 
 # Install ffmpeg.
 echo "`date`: ********* INSTALLING FFMPEG *********"
@@ -37,10 +37,10 @@ apt install -y \
 
 # Query Project metadata for Gateway IP and port.
 GATEWAY_IP=$(curl -sX GET http://metadata.google.internal/computeMetadata/v1/project/attributes/gateway_ip -H 'Metadata-Flavor: Google')
-CAPTURE_PORT=$(curl -sX GET http://metadata.google.internal/computeMetadata/v1/project/attributes/capture_port -H 'Metadata-Flavor: Google')
+CALLER_PORT=$(curl -sX GET http://metadata.google.internal/computeMetadata/v1/project/attributes/caller_port -H 'Metadata-Flavor: Google')
 
 # Define SRT source.
-SRT_SOURCE="srt://${GATEWAY_IP}:${CAPTURE_PORT}?pkt_size=1316&mode=caller&nakreport=1"
+SRT_SOURCE="srt://${GATEWAY_IP}:${CALLER_PORT}?pkt_size=1316&mode=caller&nakreport=1"
 
 # Define output location and naming.
 # For OUTPUT_PAD, use double-% to accommodate second_level_segment_index.
@@ -57,7 +57,7 @@ lscpu | grep -q avx512
 [[ $? = 0 ]] && _ASM="avx512" || _ASM="avx2"
 
 # Report ffmpeg start.
-echo "`date`: ********* START $0 SRT CAPTURE *********"
+echo "`date`: ********* START $0 SRT CALLER *********"
 
 # Construct ffmpeg and args.
 ffmpeg \
@@ -84,4 +84,4 @@ ffmpeg \
   $OUTPUT_DIR/$OUTPUT_BASE.$PLAYLIST_EXT
 
 # Report end.
-echo "`date`: ********* END $0 SRT CAPTURE *********"
+echo "`date`: ********* END $0 SRT CALLER *********"
