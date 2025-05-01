@@ -104,7 +104,7 @@ In a Chrome browser, log into the Gateway instance to configure the Gateway.
     - You may have to choose **Continue to site **>** Advanced **>** Proceed to [IP_ADDRESS] (unsafe)**, as the VM uses a self-signed certificate.
 1. At the prompt, the default username is `haiadmin`, and the password is the VM's Instance Id.
     - Once logged in, you see the Administrator dashboard:  
-        ![image](/docs/images/01-gateway.png)
+        <img src="/docs/images/01-gateway.png" width="600">
 1. Click **ADD ROUTE**, and configure the new route with the following:
     - Give the **Route** and **Source** a unique name.
     - **Protocol:** TS Over SRT.
