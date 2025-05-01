@@ -48,7 +48,7 @@ This tutorial uses the Google Cloud CLI, which you can run from a [Cloud Shell](
 
 The following diagram shows the components used in this tutorial to deploy a single virtual broadcast truck environment:
 
-<img src="/docs/images/vbt-arch.png" width="300">
+<img src="/docs/images/vbt-arch.png" width="600">
 
 ## Clone the repository
 
