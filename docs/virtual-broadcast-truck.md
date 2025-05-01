@@ -121,7 +121,7 @@ In a Chrome browser, log into the Gateway instance to configure the Gateway.
 1. Click **CREATE.** The route and destination are created.
 1. Click the **START** icon and confirm the action. The route will initiate and the source will show a status of CONNECTING (yellow triangle), waiting for an input stream:  
   
-    ![image](/docs/images/02-gateway.png)
+    <img src="/docs/images/02-gateway.png" width="600">
 
 ## Create the Sender instance
 
@@ -170,7 +170,7 @@ The Sender startup scripts reads pre-defined variables from project metadata to 
 
 1. In the Gateway UI, click the **Statistics** icon under **Actions**. Once the Sender instance boots and the startup script runs, you should see a connection over port 5000 streaming data to the Gateway. This is your Sender instance streaming video content to the Gateway:  
   
-    ![image](/docs/images/03-gateway.png)
+    <img src="/docs/images/03-gateway.png" width="600">
 
 ## Create the Caller instance
 
@@ -201,11 +201,11 @@ The Sender startup scripts reads pre-defined variables from project metadata to 
 
 Once the Caller instance is finished deploying, and the startup script runs, the Gateway UI will show a green checkbox under **Status:**
 
-![image](/docs/images/04-gateway.png)
+<img src="/docs/images/04-gateway.png" width="600">
 
 You will also see the internal IP address of the Caller instance in the statistics panel:
 
-![image](/docs/images/05-gateway.png)
+<img src="/docs/images/05-gateway.png" width="600">
 
 If you SSH into the Caller instance, you can see the chunks written to disk:
 
