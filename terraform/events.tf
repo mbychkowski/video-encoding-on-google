@@ -18,6 +18,7 @@ module "member_roles_eventarc" {
     "roles/artifactregistry.reader",
     # Grant permission to run workloads on GKE
     "roles/container.clusterAdmin",
+    "roles/container.developer",
     # Grant permission to create storage buckets
     "roles/storage.admin",
     "roles/storage.objectUser",

@@ -107,6 +107,7 @@ module "member_roles_default_compute" {
     "roles/artifactregistry.reader",
     # GKE
     "roles/container.clusterAdmin",
+    "roles/container.developer",
     # Storage
     "roles/storage.admin",
     "roles/storage.objectUser",
