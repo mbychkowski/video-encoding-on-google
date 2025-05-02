@@ -88,3 +88,35 @@ terraform apply "out.tfplan"
 | region | Region that will be used for all required resources. | x | GKE |
 | subnet | Subnet IP address range for VPC. | x | GKE |
 | job_namespace | GKE namespace for jobs for WI configuration. | x  | GKE |
+
+
+- name: 'Apply roles for Workload Identity for GKE'
+  run: |
+    gcloud projects add-iam-policy-binding prj-kokiri-dev \
+      --member=serviceAccount:gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com \
+      --role=roles/storage.objectUser \
+      --condition=None
+
+- name: 'Configure kubectl CLI access for GKE'
+  run: |
+    gcloud container clusters get-credentials gke-naps-us-central1 \
+      --region=${{ env.GCP_LOCATION }} \
+      --project=prj-kokiri-dev
+
+- name: 'Bind GCP and K8s service account for Workload Identity for GKE'
+  run: |
+    gcloud iam service-accounts add-iam-policy-binding \
+      gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com \
+      --role=roles/iam.workloadIdentityUser \
+      --member=serviceAccount:prj-kokiri-dev.svc.id.goog[default/ksa-wi-encoder] \
+      --condition=None
+
+- name: 'Deploy GKE manifests for encoder platform'
+  run: |
+    kubectl apply -k ./
+
+- name: 'Setup Workload Identity for GKE'
+  run : |
+    kubectl annotate serviceaccount ksa-wi-encoder \
+      -n default \
+      iam.gke.io/gcp-service-account=gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com

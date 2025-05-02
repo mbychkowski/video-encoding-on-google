@@ -13,6 +13,10 @@
     {
       "name": "region",
       "type": "string"
+    },
+    {
+      "name": "zone",
+      "type": "string"
     }
   ]
 }

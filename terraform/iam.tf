@@ -99,14 +99,14 @@ module "member_roles_default_compute" {
   prefix                  = "serviceAccount"
   project_id              = local.project.id
   project_roles = [
-    "roles/compute.viewer",
+    "roles/compute.admin",
     "roles/iam.serviceAccountUser",
     # Artifact Registry
     "roles/artifactregistry.writer",
     "roles/artifactregistry.serviceAgent",
     "roles/artifactregistry.reader",
     # GKE
-    "roles/container.developer",
+    "roles/container.clusterAdmin",
     # Storage
     "roles/storage.admin",
     "roles/storage.objectUser",

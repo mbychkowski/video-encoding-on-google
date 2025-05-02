@@ -1,0 +1,266 @@
+# This workflow demonstrates how to use the Google Kubernetes Engine (GKE) connector:
+# Create a GKE cluster and then delete it
+# Each step waits until the long-running operation of creating or deleting the cluster completes
+# Expected output: "SUCCESS"
+main:
+  params: [event]
+  steps:
+    - init:
+        assign:
+          - base64: ${base64.decode(event.data.message.data)}
+          - message: ${json.decode(base64)}
+          - encoding_id: '${"encoding-" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}'
+          - event_id: ${message.eventId}
+          - location: ${message.region}
+          - zone: ${message.zone}
+          - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+
+          - cluster_id: '${"srt-caller-" + (location) + "-" + (encoding_id)}'
+          - cluster_full_name: ${"projects/" + project_id + "/locations/" + location + "/clusters/" + cluster_id}
+          - instance: '${"srt-sender-" + (location) + "-" + (encoding_id)}'  # replace INSTANCE_NAME placeholder
+          - machineType: "e2-standard-2"
+
+          - bucket_name_primary: '${"bkt-" + (encoding_id) + "-primary"}'
+          - bucket_name_backup: '${"bkt-" + (encoding_id) + "-backup"}'
+
+          - docker_repo_uri: ${sys.get_env("DOCKER_REPO_URI")}
+          - image_version: "encoder:v0.1"
+    - parallel_deployment:
+        parallel:
+          branches:
+            - sender:
+                steps:
+                  - insert_machine:
+                      call: googleapis.compute.v1.instances.insert
+                      args:
+                        project: ${project_id}
+                        zone: ${zone}
+                        body:
+                          name: ${instance}
+                          machineType: ${"zones/" + zone + "/machineTypes/" + machineType}
+                          metadata:  # TODO: Add metadata and startup script
+                            items:
+                              - key: startup-script-url
+                                value: gs://bkt-prj-dev-truck-startup/start-sender.sh # Replace with your bucket and script
+                          disks:
+                          - initializeParams:
+                              sourceImage: "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250425" # Changed image
+                              diskSizeGb: 100 # Added boot disk size
+                              # diskType: "projects/${project_id}/zones/${zone}/diskTypes/pd-balanced" # Added boot disk type and full path
+                            boot: true
+                            autoDelete: true
+                          networkInterfaces:
+                            - network: "global/networks/default"
+                  - config_machine:
+                      call: googleapis.compute.v1.instances.addAccessConfig
+                      args:
+                        instance: ${instance}
+                        project: ${project_id}
+                        zone: ${zone}
+                        body:
+                          name: default
+                          natIP: ${message.truckOriginIp}
+                  - start_machine:
+                      call: googleapis.compute.v1.instances.start
+                      args:
+                        instance: ${instance}
+                        project: ${project_id}
+                        zone: ${zone}
+                  - assert_running_sender:
+                      call: assert_machine_status
+                      args:
+                        expected_status: "RUNNING"
+                        project: ${project_id}
+                        zone: ${zone}
+                        instance: ${instance}
+            - caller:
+                steps:
+                  - create_gke_cluster:
+                      call: googleapis.container.v1.projects.locations.clusters.create
+                      args:
+                        # projectId: ${project_id}
+                        parent: ${"projects/" + project_id + "/locations/" + location}
+                        body:
+                          cluster:
+                            name: ${cluster_id}
+                            network:
+                            initial_node_count: 1
+                            autopilot:
+                              enabled: true
+                            ipAllocationPolicy:
+                              clusterIpv4CidrBlock: "/16"
+                              servicesIpv4CidrBlock: "/24"
+                            releaseChannel:
+                              channel: RAPID
+                            nodeConfig:
+                              serviceAccount: sa-naps-gke-cluster
+                              oauthScopes:
+                                - https://www.googleapis.com/auth/cloud-platform
+                            addonsConfig:
+                              horizontalPodAutoscaling:
+                                disabled: false
+                  - assert_running_caller:
+                      call: assert_cluster_status
+                      args:
+                        expected_status: "RUNNING"
+                        project_id: ${project_id}
+                        location: ${location}
+                        cluster_id: ${cluster_id}
+                        cluster_full_name: ${cluster_full_name}
+    - create_bucket_primary:
+        call: googleapis.storage.v1.buckets.insert
+        args:
+          project: ${project_id}
+          body:
+              name: ${bucket_name_primary}
+    - label_bucket_primary:
+        call: googleapis.storage.v1.buckets.update
+        args:
+          bucket: ${bucket_name_primary}
+          body:
+            labels:
+              event: ${event_id}
+              backup: "false"
+    - deploy_serviceaccount:
+        call: gke.request
+        args:
+          project: ${project_id}
+          location: ${location}
+          cluster_id: ${cluster_id}
+          method: "POST"
+          path: "/apis/core/v1/namespaces/default/serviceaccount"
+          body:
+              kind: ServiceAccount
+              metadata:
+                name: ksa-wi-encoder
+                annotations:
+                  iam.gke.io/gcp-service-account: gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com
+
+    - run_encoder_primary:
+        call: gke.request
+        args:
+          project: ${project_id}
+          location: ${location}
+          cluster_id: ${cluster_id}
+          method: "POST"
+          path: "/apis/apps/v1/namespaces/default/deployments"
+          body:
+              kind: Deployment
+              metadata:
+                name: '${(encoding_id) + "-primary"}'
+                labels:
+                  name: encoder
+                  version: stable
+                  backup: "false"
+                  event: ${event_id}
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    event: ${event_id}
+                template:
+                  metadata:
+                    labels:
+                      name: encoder
+                      version: stable
+                      backup: "false"
+                      event: ${event_id}
+                    annotations:
+                      gke-gcsfuse/volumes: "true"
+                      gke-gcsfuse/ephemeral-storage-limit: "0"
+                      gke-gcsfuse/cpu-limit: "0"
+                      gke-gcsfuse/memory-limit: "0"
+                      cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+                  spec:
+                    restartPolicy: Always
+                    serviceAccountName: ksa-wi-encoder
+                    terminationGracePeriodSeconds: 15
+                    nodeSelector:
+                      cloud.google.com/machine-family: n2d
+                      cloud.google.com/compute-class: Performance
+                      # cloud.google.com/gke-spot: "true"
+                    containers:
+                    - image: '${(docker_repo_uri) + "/" + (image_version)}'
+                      name: encoder
+                      imagePullPolicy: Always
+                      ports:
+                      - name: udp
+                        containerPort: 5000
+                        protocol: UDP
+                      env:
+                      - name: ENV
+                        value: dev
+                      - name: OUTPUT_BUCKET
+                        value: ${bucket_name_primary}
+                      - name: RESOLUTION
+                        value: "1080"
+                      - name: OUTPUT_PATH
+                        value: "/output"
+                      - name: OUTPUT_BASE
+                        value: "ffmpeg-test"
+                      - name: OUTPUT_PAD
+                        value: "%06d"
+                      - name: OUTPUT_EXT
+                        value: "ts"
+                      - name: SENDER_ADDR
+                        value: '${(message.truckOriginIp) + ":5000"}'
+                      resources:
+                        requests:
+                          cpu: 6
+                          memory: 6Gi
+                          ephemeral-storage: 100Gi
+                        limits:
+                          memory: 16Gi
+                          ephemeral-storage: 100Gi
+                      volumeMounts:
+                      - name: gcs-fuse-csi-output
+                        mountPath: "/output"
+                    volumes:
+                    - name: gcs-fuse-cache
+                      emptyDir:
+                        medium: Memory
+                    - name: gcs-fuse-csi-output
+                      csi:
+                        driver: gcsfuse.csi.storage.gke.io
+                        volumeAttributes:
+                          bucketName: ${bucket_name_primary}
+                          mountOptions: "implicit-dirs"
+                          disableMetrics: "false"
+                          enableStreamingWrites: "true"
+    - the_end:
+        return: "SUCCESS"
+
+assert_cluster_status:
+  params:
+    [expected_status, project_id, location, cluster_id, cluster_full_name]
+  steps:
+    - get_cluster:
+        call: googleapis.container.v1.projects.locations.clusters.get
+        args:
+          projectId: ${project_id}
+          clusterId: ${cluster_id}
+          name: ${cluster_full_name}
+        result: cluster
+    - compare:
+        switch:
+          - condition: ${cluster.status == expected_status}
+            next: end
+    - fail:
+        raise: ${"Expected VM status is " + expected_status + ". Received " + cluster.status + " instead."}
+
+assert_machine_status:
+  params: [expected_status, project, zone, instance]
+  steps:
+    - get_instance:
+        call: googleapis.compute.v1.instances.get
+        args:
+          instance: ${instance}
+          project: ${project}
+          zone: ${zone}
+        result: instance
+    - compare:
+        switch:
+          - condition: ${instance.status == expected_status}
+            next: end
+    - fail:
+        raise: ${"Expected VM status is " + expected_status + ". Received " + instance.status + " instead."}
