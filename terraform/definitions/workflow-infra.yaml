@@ -100,6 +100,21 @@ main:
                             addonsConfig:
                               horizontalPodAutoscaling:
                                 disabled: false
+                  - deploy_serviceaccount:
+                      call: gke.request
+                      args:
+                        project: ${project_id}
+                        location: ${location}
+                        cluster_id: ${cluster_id}
+                        method: "POST"
+                        path: "/apis/core/v1/namespaces/default/serviceaccount"
+                        body:
+                            kind: ServiceAccount
+                            metadata:
+                              name: ksa-wi-encoder
+                              annotations:
+                                iam.gke.io/gcp-service-account: gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com
+
                   - assert_running_caller:
                       call: assert_cluster_status
                       args:
@@ -122,21 +137,6 @@ main:
             labels:
               event: ${event_id}
               backup: "false"
-    - deploy_serviceaccount:
-        call: gke.request
-        args:
-          project: ${project_id}
-          location: ${location}
-          cluster_id: ${cluster_id}
-          method: "POST"
-          path: "/apis/core/v1/namespaces/default/serviceaccount"
-          body:
-              kind: ServiceAccount
-              metadata:
-                name: ksa-wi-encoder
-                annotations:
-                  iam.gke.io/gcp-service-account: gsa-wi-encoder@prj-kokiri-dev.iam.gserviceaccount.com
-
     - run_encoder_primary:
         call: gke.request
         args:
