@@ -206,7 +206,7 @@ of the event to sync the encoder as close as possible to the truck.
 
 ```bash
 gcloud pubsub topics publish encoder-topic \
-  --message="{\"truckOriginIp\": \"${TRUCK_IP}\", \"eventId\": \"${EVENT}\", \"region\": \"${TRUCK_LOCATION}\"}"
+  --message="{\"truckOriginIp\": \"${TRUCK_IP}\", \"eventId\": \"${EVENT}\", \"region\": \"${TRUCK_LOCATION}\", \"zone\": \"${TRUCK_LOCATION}\"}"
 ```
 
 

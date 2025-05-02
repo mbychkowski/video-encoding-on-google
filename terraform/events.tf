@@ -55,7 +55,7 @@ resource "google_pubsub_topic" "encoder" {
 
 # Create Workflows as an event receiver
 data "local_file" "encoder_workflow" {
-  filename = "./definitions/workflow.yaml"
+  filename = "./definitions/workflow-infra.yaml"
 }
 
 # Create a workflow
