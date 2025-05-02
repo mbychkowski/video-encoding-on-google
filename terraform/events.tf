@@ -10,14 +10,14 @@ module "member_roles_eventarc" {
   prefix                  = "serviceAccount"
   project_id              = local.project.id
   project_roles = [
-    "roles/compute.viewer",
+    "roles/compute.admin",
     "roles/iam.serviceAccountUser",
     # Grant permissions to Artifact Registry
     "roles/artifactregistry.writer",
     "roles/artifactregistry.serviceAgent",
     "roles/artifactregistry.reader",
     # Grant permission to run workloads on GKE
-    "roles/container.developer",
+    "roles/container.clusterAdmin",
     # Grant permission to create storage buckets
     "roles/storage.admin",
     "roles/storage.objectUser",
