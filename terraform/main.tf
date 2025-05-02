@@ -41,6 +41,6 @@ resource "time_sleep" "wait_for_service_agent_readiness" {
   depends_on = [
     google_project_service_identity.service_identity,
   ]
-  # SLO for IAM provisioning of Service Agents is 7min.
-  create_duration = "420s"
+  # SLO for IAM provisioning of Service Agents is 7min (420sec).
+  create_duration = "120s"
 }
